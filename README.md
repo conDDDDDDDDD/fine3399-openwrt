@@ -79,8 +79,10 @@ openwrt-24.10.8-rockchip-armv8-rumu3f_fine3399-squashfs-sysupgrade.img.gz
 ```sh
 git clone --depth 1 -b v24.10.8 https://github.com/openwrt/openwrt.git openwrt
 ./scripts/apply.sh openwrt
-cp configs/fine3399.config openwrt/.config
 cd openwrt
+./scripts/feeds update -a
+./scripts/feeds install -a
+cp ../configs/fine3399.config .config
 make defconfig
 make download -j8
 make -j8
