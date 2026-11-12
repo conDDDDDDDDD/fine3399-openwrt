@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# First-boot defaults for the Fine3399 router.
+
+uci -q batch <<'EOF'
+set system.@system[0].hostname='Fine3399'
+set system.@system[0].description='Fine3399 RK3399 wired router'
+set system.@system[0].timezone='CST-8'
+set system.@system[0].zonename='Asia/Shanghai'
+commit system
+EOF
+
+exit 0

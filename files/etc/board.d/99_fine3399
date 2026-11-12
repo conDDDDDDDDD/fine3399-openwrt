@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# Fine3399 port mapping and stable MAC addresses.
+#
+#   eth0 = on-board RTL8211 (RK3399 GMAC, RGMII)   -> WAN
+#   eth1 = RTL8153B (USB 3.0 gigabit)              -> LAN
+#
+# The SoC has no MAC address in eFuse and the RTL8153B has no EEPROM MAC,
+# so a stable address is derived from the eMMC CID.
+
+. /lib/functions/uci-defaults.sh
+. /lib/functions/system.sh
+
+board_config_update
+
+board=$(board_name)
+
+case "$board" in
+rockchip,fine3399|rumu3f,fine3399)
+	ucidef_set_interfaces_lan_wan 'eth1' 'eth0'
+
+	for dev in mmcblk2 mmcblk0 mmcblk1; do
+		[ -r "/sys/block/$dev/device/cid" ] || continue
+		wan_mac=$(macaddr_generate_from_mmc_cid "$dev")
+		[ -n "$wan_mac" ] && break
+	done
+
+	if [ -n "$wan_mac" ]; then
+		ucidef_set_interface_macaddr wan "$wan_mac"
+		ucidef_set_interface_macaddr lan "$(macaddr_add "$wan_mac" 1)"
+	fi
+	;;
+esac
+
+board_config_flush
+
+exit 0
