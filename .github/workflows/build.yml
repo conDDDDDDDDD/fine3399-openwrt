@@ -33,10 +33,17 @@ jobs:
 
       - name: Free disk space
         run: |
+          echo "=== before ==="; df -h /
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
-                      /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+                      /opt/hostedtoolcache /usr/local/share/boost \
+                      /usr/local/lib/node_modules "${AGENT_TOOLSDIRECTORY}"
+          sudo apt-get -y purge '^dotnet-.*' '^llvm-.*' '^temurin-.*' \
+                      '^mongodb-.*' '^mysql-.*' azure-cli google-chrome-stable \
+                      firefox powershell mono-devel || true
+          sudo apt-get -y autoremove --purge || true
           sudo apt-get clean
-          df -h /
+          sudo rm -rf /var/lib/apt/lists/*
+          echo "=== after ==="; df -h /
 
       - name: Install build dependencies
         run: |
@@ -62,7 +69,8 @@ jobs:
           cd openwrt
           make defconfig
           echo "=== selected device ==="
-          grep -E 'CONFIG_TARGET_rockchip_armv8_DEVICE_rumu3f_fine3399|CONFIG_TARGET_KERNEL_PARTSIZE|CONFIG_TARGET_ROOTFS_PARTSIZE' .config
+          grep -E 'CONFIG_TARGET_DEVICE_rockchip_armv8_DEVICE_rumu3f_fine3399|CONFIG_TARGET_KERNEL_PARTSIZE|CONFIG_TARGET_ROOTFS_PARTSIZE' .config
+          test "$(grep -c '^CONFIG_TARGET_DEVICE_rockchip_armv8_DEVICE_rumu3f_fine3399=y$' .config)" = 1
           echo "=== u-boot variant ==="
           grep -n 'fine3399-rk3399' package/boot/uboot-rockchip/Makefile
 
@@ -85,7 +93,7 @@ jobs:
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
-          name: fine3399-openwrt-${{ env.OPENWRT_REF }}
+          name: fine3399-openwrt-${{ github.run_number }}
           if-no-files-found: error
           retention-days: 30
           path: |
