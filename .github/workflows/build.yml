@@ -93,6 +93,18 @@ jobs:
           set -o pipefail
           make -j"$(nproc)" 2>&1 | tee build.log
 
+      - name: Verify console baud
+        run: |
+          cd openwrt/bin/targets/rockchip/armv8
+          img=$(ls *sysupgrade.img.gz | head -1)
+          echo "checking $img for the console rate baked into boot.scr / U-Boot env"
+          zcat "$img" | grep -abo 'console=ttyS2,115200' | head -3 || true
+          if zcat "$img" | grep -aq 'console=ttyS2,1500000'; then
+            echo "ERROR: 1500000 console string still present in image"
+            exit 1
+          fi
+          echo "console baud OK"
+
       - name: Show results
         run: |
           ls -lh openwrt/bin/targets/rockchip/armv8/

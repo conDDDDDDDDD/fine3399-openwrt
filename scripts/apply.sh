@@ -38,6 +38,15 @@ python3 "$ROOT/scripts/mkpatch.py" --base "$ROOT/board" \
 	"uboot/rk3399-fine3399.dts:dts/upstream/src/arm64/rockchip/rk3399-fine3399.dts" \
 	"uboot/rk3399-fine3399-u-boot.dtsi:arch/arm/dts/rk3399-fine3399-u-boot.dtsi"
 
+echo "==> console baud 115200"
+# Not every console string lives in our board files: the boot.scr template and the
+# U-Boot default env carry their own "console=ttyS2,...". The CP2102 adapter in use
+# tops out at 1 Mbps, so the whole console chain has to run at 115200.
+grep -rl 'console=ttyS2,1500000' "$OW" 2>/dev/null | while IFS= read -r f; do
+	sed -i 's/console=ttyS2,1500000/console=ttyS2,115200/g' "$f"
+	echo "    patched ${f#"$OW"/}"
+done || true
+
 echo "==> u-boot package variant"
 python3 - "$OW/package/boot/uboot-rockchip/Makefile" "$ROOT/board/uboot.mk" <<'PY'
 import sys
