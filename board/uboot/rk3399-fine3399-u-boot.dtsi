@@ -15,3 +15,14 @@
 &vdd_log {
 	regulator-init-microvolt = <950000>;
 };
+
+/*
+ * LPDDR4 on this board runs its PHY/IO rail at 0.95 V, same as the
+ * RockPro64 reference design. RK808 defaults to 0.9 V, which makes the
+ * DDR init fail (TPL prints its banner and then hangs).
+ */
+&vdd_center {
+	regulator-min-microvolt = <950000>;
+	regulator-max-microvolt = <950000>;
+};
+

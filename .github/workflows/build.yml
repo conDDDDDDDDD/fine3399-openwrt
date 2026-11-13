@@ -93,6 +93,19 @@ jobs:
           set -o pipefail
           make -j"$(nproc)" 2>&1 | tee build.log
 
+      - name: Verify U-Boot LPDDR4 config
+        run: |
+          cfg=$(ls -d openwrt/build_dir/target-*/u-boot-*/.config 2>/dev/null | head -1)
+          test -n "$cfg" || { echo "ERROR: u-boot .config not found"; exit 1; }
+          echo "using $cfg"
+          grep -E '^CONFIG_RAM_ROCKCHIP_LPDDR4=y$' "$cfg"
+          grep -E '^CONFIG_BAUDRATE=115200$' "$cfg"
+          if grep -qE '^CONFIG_RAM_RK3399_LPDDR4' "$cfg"; then
+            echo "ERROR: non-existent CONFIG_RAM_RK3399_LPDDR4 still present" >&2
+            exit 1
+          fi
+          echo "u-boot LPDDR4 config OK"
+
       - name: Verify console baud
         run: |
           cd openwrt/bin/targets/rockchip/armv8
