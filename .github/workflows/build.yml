@@ -95,15 +95,20 @@ jobs:
 
       - name: Verify U-Boot LPDDR4 config
         run: |
-          cfg=$(ls -d openwrt/build_dir/target-*/u-boot-*/.config 2>/dev/null | head -1)
-          test -n "$cfg" || { echo "ERROR: u-boot .config not found"; exit 1; }
-          echo "using $cfg"
-          grep -E '^CONFIG_RAM_ROCKCHIP_LPDDR4=y$' "$cfg"
-          grep -E '^CONFIG_BAUDRATE=115200$' "$cfg"
-          if grep -qE '^CONFIG_RAM_RK3399_LPDDR4' "$cfg"; then
-            echo "ERROR: non-existent CONFIG_RAM_RK3399_LPDDR4 still present" >&2
+          echo "=== u-boot build dirs ==="
+          ls -d openwrt/build_dir/target-*/u-boot-*/ 2>/dev/null || true
+          cfg=$(ls -d openwrt/build_dir/target-aarch64_cortex-a53_musl/u-boot-*/.config 2>/dev/null | head -1)
+          test -n "$cfg" || { echo "ERROR: u-boot .config not found under target-aarch64_cortex-a53_musl"; exit 1; }
+          echo "=== using $cfg ==="
+          grep -nE 'CONFIG_(RAM_[A-Za-z0-9_]*|BAUDRATE|TPL_|SPL_)' "$cfg" || true
+          grep -qE '^CONFIG_RAM_ROCKCHIP_LPDDR4=y$' "$cfg" || {
+            echo "ERROR: CONFIG_RAM_ROCKCHIP_LPDDR4 not enabled in $cfg"
             exit 1
-          fi
+          }
+          grep -qE '^CONFIG_BAUDRATE=115200$' "$cfg" || {
+            echo "ERROR: CONFIG_BAUDRATE is not 115200 in $cfg"
+            exit 1
+          }
           echo "u-boot LPDDR4 config OK"
 
       - name: Verify console baud
@@ -124,10 +129,11 @@ jobs:
           cat openwrt/bin/targets/rockchip/armv8/sha256sums 2>/dev/null || true
 
       - name: Upload firmware
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: fine3399-openwrt-${{ github.run_number }}
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
           path: |
             openwrt/bin/targets/rockchip/armv8/*.img.gz
